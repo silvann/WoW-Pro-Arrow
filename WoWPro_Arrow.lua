@@ -17,12 +17,31 @@
 	-- WAYPOINT_ADDED (wpID, x, y, zone, floor, opt)
 	-- WAYPOINT_CLEARED (wpID, x, y, zone, floor, opt)
 	-- WAYPOINT_DISTANCE (wpID, distance)
+	
+-- TODO: support label text
 
-
+-- Libs --
 WoWPro_Arrow = LibStub("AceAddon-3.0"):NewAddon("Arrow")
 local mapdata = LibStub("LibMapData-1.0")
 local callbacks = LibStub("CallbackHandler-1.0"):New(WoWPro_Arrow)
 
+-- local lua/Blizz APIs --
+local twipe, type = wipe, type
+local GetPlayerFacing, GetPlayerMapPosition = GetPlayerFacing, GetPlayerMapPosition
+local SetMapToCurrentZone, GetCurrentMapAreaID = SetMapToCurrentZone, GetCurrentMapAreaID
+
+-- local function declarations --
+local SetArrowToWaypoint, AddWaypoint, IsArrowSet, ClearArrow
+local RemoveWaypoint, ClearWaypoint, CreateCrazyArrow
+-- tests, remove later
+local Box_OnDragStart, Box_OnDragStop, CreateBox
+local MapID_OnUpdate, MapLocal2Name_OnUpdate, MapLocalName_OnUpdate
+local MapFileName_OnUpdate
+
+
+-- Constant variables --
+
+-- Waypoint default options
 local wp_defaults = {
 ["cleararrival"] = true,
 ["arrivaldistance"] = 10,
@@ -31,19 +50,16 @@ local wp_defaults = {
 ["distMsgs"] = nil,
 }
 
---localized continent names
+-- localized continent names
 local continentNames = {GetMapContinents()}
 
-local waypoints = {}
-
-local arrowWaypoint
-
+-- localization
 local locale = GetLocale()
 
+-- Map IDs covered by lib
 local allZoneIDs = mapdata:GetAllMapIDs()
 
-local localeZones
-
+-- enUS/Default localized zones
 local enUSZones = {
 	["Dire Maul"] = "699",
 	["The Hinterlands"] = "26",
@@ -177,6 +193,16 @@ local enUSZones = {
 	["Zul'Drak"] = "496",
 }
 
+-- other variables --
+local waypoints = {}
+local arrowWaypoint
+local localeZones
+local currentZoneID
+
+-- util functions --
+
+-- set color gradient given percentage
+-- from TomTomLite
 local function ColorGradient(perc, ...)
     local num = select("#", ...)
     local hexes = type(select(1, ...)) == "string"
@@ -201,15 +227,18 @@ local function ColorGradient(perc, ...)
     end
 end
 
+-- check if a mapID is valid, according to the lib and some hacks
 local function IsValidZoneID(id)
 	for _,zoneid in pairs(allZoneIDs) do
-		if id == zoneid then
+		if id == zoneid and zoneid ~= 542  -- wrong TheArgentColiseum
+						and zoneid ~= 751 then -- not real?
 			return true
 		end
 	end
 	return false
 end
 
+-- if localization is not enUS, build localized table, based on lib and hacks
 local function CreateLocaleZones()
 	if locale == "enUS" then
 		return nil
@@ -229,25 +258,111 @@ local function CreateLocaleZones()
 		
 		local mt = {}
 		mt.__index = tbl
-		setmetatable(enUSZones, tbl)
+		setmetatable(enUSZones, mt)
 		return tbl
 	end
 end
 
-function WoWPro_Arrow:SetArrowToWaypoint(wpID)
--- test first
-	arrowWaypoint = wpID
-	self.arrow:Show()
-end
+-----------------
+-- Public APIs --
+-----------------
 
---simple
--- TODO: support label text
+-- simple add waypoint
 function WoWPro_Arrow:AddWaypoint(x, y, zone, floor)
-	return WoWPro_Arrow:AddWaypointOpt(x, y, zone, floor)
+	return AddWaypoint(x, y, zone, floor, nil)
 end
 
--- with options
+-- or add with options table
 function WoWPro_Arrow:AddWaypointOpt(x, y, zone, floor, opt)
+	return AddWaypoint(x, y, zone, floor, opt)
+end
+
+-- Set arrow to an existent waypoint
+function WoWPro_Arrow:SetArrowToWaypoint(wpID)
+	return SetArrowToWaypoint(wpID)
+end
+
+-- get waypoint info (x,y,zone,floor,opt), given wpID
+function WoWPro_Arrow:GetWaypoint(wpID)
+	if not wpID then
+		return nil
+	end
+	
+	local waypoint = waypoints[wpID]
+	
+	if waypoint then
+		return unpack(waypoint)
+	else
+		return nil
+	end
+end
+
+-- get all waypoints, as a table, indexed by wpID
+function WoWPro_Arrow:GetAllWaypoints()
+	return waypoints
+end
+
+-- remove waypoint (will not trigger msg)
+function WoWPro_Arrow:RemoveWaypoint(wpID)
+	return RemoveWaypoint(wpID)
+end
+
+-- remove all waypoints
+function WoWPro_Arrow:RemoveAllWaypoints()
+	for wpID,_ in pairs(waypoints) do
+		RemoveWaypoint(wpID)
+	end
+end
+-- ending public APIs --
+------------------------
+
+
+-- local implementation, function, etc --
+
+function WoWPro_Arrow:OnInitialize()
+	self.arrow = CreateCrazyArrow("WoWProArrow")
+    self.arrow:SetPoint("CENTER", 0, 0)
+    self.arrow:Hide()
+	
+	-- TESTS: remove later --
+	self.frameMapID = CreateBox("frameMapID")
+	self.frameMapID:SetScript("OnUpdate", MapID_OnUpdate)
+	self.frameMapFileName = CreateBox("frameMapFileName")
+	self.frameMapFileName:SetScript("OnUpdate", MapFileName_OnUpdate)
+	self.frameMapLocalName = CreateBox("frameMapLocalName")
+	self.frameMapLocalName:SetScript("OnUpdate", MapLocalName_OnUpdate)
+	self.frameMapLocal2Name = CreateBox("frameMapLocal2Name")
+	self.frameMapLocal2Name:SetScript("OnUpdate", MapLocal2Name_OnUpdate)
+	-------------------------
+	
+end
+
+function WoWPro_Arrow:OnEnable()
+	mapdata.RegisterCallback(self, "MapChanged", "MapChangedCallback")
+end
+
+-- tentar fazer local depois
+-- see map lib, if worlmap is open, msg isnt sent?
+function WoWPro_Arrow:MapChangedCallback(self, map, floor, ...)
+	local worldMapZoneID = GetCurrentMapAreaID()
+	SetMapToCurrentZone()
+	currentZoneID = GetCurrentMapAreaID()
+	-- restoring
+	SetMapByID(worldMapZoneID)	
+end
+
+
+SetArrowToWaypoint = function(wpID)
+	-- TODO: falta mais coisas
+	if wpID and waypoints[wpID] then
+		arrowWaypoint = wpID
+		self.arrow:Show()
+	else
+		return false
+	end
+end
+
+AddWaypoint = function(x, y, zone, floor, opt)
 	if type(tonumber(x)) ~= "number" or type(tonumber(y)) ~= "number" then
 		print("Invalid coordinate(s)")
 		return nil
@@ -319,28 +434,10 @@ function WoWPro_Arrow:AddWaypointOpt(x, y, zone, floor, opt)
 	return wpID
 end
 
--- return x,y,zone,floor,opt
-function WoWPro_Arrow:GetWaypoint(wpID)
-	if not wpID then
-		return nil
-	end
-	
-	local waypoint = waypoints[wpID]
-	
-	if waypoint then
-		return unpack(waypoint)
-	else
-		return nil
-	end
-end
-
-function WoWPro_Arrow:GetAllWaypoints()
-	return waypoints
-end
 
 -- see if the arrow is poiting for this waypoint
 -- if called with no parameter, return waypointID
-local function IsArrowSet(wpID)
+IsArrowSet = function(wpID)
 	if wpID and arrowWaypoint then
 		return (wpID == arrowWaypoint)
 	else
@@ -348,7 +445,7 @@ local function IsArrowSet(wpID)
 	end
 end
 
-local function ClearArrow()
+ClearArrow = function()
 	if IsArrowSet() then
 		arrowWaypoint = nil
 	end
@@ -356,7 +453,7 @@ local function ClearArrow()
 	-- or try to acquire a new waypoint if auto is set
 end
 
-function WoWPro_Arrow:RemoveWaypoint(wpID)
+RemoveWaypoint = function(wpID)
 	if IsArrowSet(wpID) then
 		ClearArrow()
 	end
@@ -364,20 +461,13 @@ function WoWPro_Arrow:RemoveWaypoint(wpID)
 	if not wpID or not waypoints[wpID] then
 		return false
 	else
-		waypoints[wpID] = nil
+		twipe(waypoints[wpID])
 		-- clear from minimap and worldmap
 		return true
 	end
 end
 
-function WoWPro_Arrow:RemoveAllWaypoints()
-	for wpID,_ in pairs(waypoints) do
-		WoWPro_Arrow:RemoveWaypoint(wpID)
-	end
-end
-		
-
-function WoWPro_Arrow:ClearWaypoint(wpID)
+ClearWaypoint = function(wpID)
 	local x, y, zone, floor, opt = WoWPro_Arrow:GetWaypoint(wpID)
 	local event = WoWPro_Arrow:RemoveWaypoint(wpID)
 	if event then
@@ -386,103 +476,7 @@ function WoWPro_Arrow:ClearWaypoint(wpID)
 	return event
 end
 
-local function Box_OnDragStart(self, button, down)
-	self:StartMoving()
-end
-
-local function Box_OnDragStop(self, button, down)
-	self:StopMovingOrSizing()
-end
-
-local function CreateBox(stringname)
-	local name = nil
-	if stringname and type(stringname) == "string" then
-		name = stringname
-	end
-	local frame = CreateFrame("Button", name, UIParent)
-	
-	frame:SetWidth(200)
-	frame:SetHeight(32)
-	frame:SetToplevel(1)
-	frame:SetFrameStrata("LOW")
-	frame:SetMovable(true)
-	frame:EnableMouse(true)
-	frame:SetClampedToScreen()
-	frame:RegisterForDrag("LeftButton")
-	frame:RegisterForClicks("RightButtonUp")
-	frame:SetPoint("TOP", Minimap, "BOTTOM", -100, -10)
-
-	frame.Text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	frame.Text:SetJustifyH("CENTER")
-	frame.Text:SetPoint("CENTER", 0, 0)
-
-	frame:SetBackdrop({
-		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-		edgeSize = 16,
-		insets = {left = 4, right = 4, top = 4, bottom = 4},
-	})
-	frame:SetBackdropColor(0,0,0,0.4)
-	frame:SetBackdropBorderColor(1,0.8,0,0.8)
-
-			-- Set behavior scripts
-	-- frame:SetScript("OnUpdate", Box_OnUpdate)
-	frame:SetScript("OnDragStop", Box_OnDragStop)
-	frame:SetScript("OnDragStart", Box_OnDragStart)
-		
-	-- Show the frame
-	frame:Show()
-	
-	return frame
-end
-
-local function MapID_OnUpdate(self, elapsed)
-	local mapid = GetCurrentMapAreaID()
-	if not mapid then
-		self.Text:SetText("id: nil")
-	else
-		mapid = tostring(mapid)
-		self.Text:SetFormattedText("%s %d", "id: ", mapid)
-	end
-	self.Text:Show()
-end
-
-local function MapFileName_OnUpdate(self, elapsed)
-	local filename = GetMapInfo()
-	if not filename then
-		self.Text:SetText("filename: nil")
-	else
-		filename = tostring(filename)
-		self.Text:SetFormattedText("%s %s", "zone: ", filename)
-	end
-	self.Text:Show()
-end
-
-local function MapLocalName_OnUpdate(self, elapsed)
-	local mapid = GetCurrentMapAreaID()
-	local localname = mapdata:MapLocalize(mapid)
-	if not localname then
-		self.Text:SetText("localname: nil")
-	else
-		localname = tostring(localname)
-		self.Text:SetFormattedText("%s %s", "local: ", localname)
-	end
-	self.Text:Show()
-end
-
-local function MapLocal2Name_OnUpdate(self, elapsed)
-	local mapid = GetCurrentMapAreaID()
-	local localname = GetZoneText()
-	if not localname then
-		self.Text:SetText("localname: nil")
-	else
-		localname = tostring(localname)
-		self.Text:SetFormattedText("%s %s", "local2: ", localname)
-	end
-	self.Text:Show()
-end
-
-local function CreateCrazyArrow(name, parent)
+CreateCrazyArrow = function(name, parent)
     parent = parent or UIParent
     local frame = CreateFrame("Button", name, parent)
 
@@ -563,69 +557,105 @@ local function CreateCrazyArrow(name, parent)
     return frame
 end
 
-function WoWPro_Arrow:OnInitialize()
-	self.frameMapID = CreateBox("frameMapID")
-	self.frameMapID:SetScript("OnUpdate", MapID_OnUpdate)
-	self.frameMapFileName = CreateBox("frameMapFileName")
-	self.frameMapFileName:SetScript("OnUpdate", MapFileName_OnUpdate)
-	self.frameMapLocalName = CreateBox("frameMapLocalName")
-	self.frameMapLocalName:SetScript("OnUpdate", MapLocalName_OnUpdate)
-	self.frameMapLocal2Name = CreateBox("frameMapLocal2Name")
-	self.frameMapLocal2Name:SetScript("OnUpdate", MapLocal2Name_OnUpdate)
-	self.arrow = CreateCrazyArrow("WoWProArrow")
-    self.arrow:SetPoint("CENTER", 0, 0)
-    self.arrow:Hide()
+
+
+
+
+
+-- local TESTS function implementation, remove later!
+
+Box_OnDragStart = function(self, button, down)
+	self:StartMoving()
 end
 
--- local function CreateLocalZonesTable(self)
-	-- local tbl = {}
-	-- local mapIDs = mapdata:GetAllMapIDs()
-		-- for i,mapid in ipairs(mapIDs) do
-			-- local localzone = mapdata:MapLocalize(mapid)
-			-- tbl[localzone] = tostring(mapid)
-		-- -- if mapid ~= 751 and mapid ~= 539 and mapid ~= 542 then
-			-- -- if mapid == 770 then
-				-- -- localzone = "Twilight Highlands (phased1)"
-			-- -- else
-				-- -- localzone = mapdata:MapLocalize(mapid)
-				-- -- if localzone == "Gilneas2" then
-					-- -- if mapid == 611 then
-						-- -- localzone = "Gilneas City"
-					-- -- elseif mapid == 678 then
-						-- -- localzone = "Gilneas (Phased1)"
-					-- -- elseif mapid == 545 then
-						-- -- localzone = "Gilneas"
-					-- -- elseif mapid == 679 then
-						-- -- localzone = "Gilneas (Phased2)"
-					-- -- end
-				-- -- elseif localzone == "Kalimdor" then
-					-- -- if mapid == 683 then
-						-- -- localzone = "Hyjal (Phased1)"
-					-- -- elseif mapid == 748 then
-						-- -- localzone = "Uldum (Phased1)"
-					-- -- end
-				-- -- elseif localzone == "LostIsles" then
-					-- -- if mapid == 681 then
-						-- -- localzone = "The Lost Isles (Phased1)"
-					-- -- elseif mapid == 682 then
-						-- -- localzone = "The Lost Isles (Phased2)"
-					-- -- end
-				-- -- end
-			-- -- end
-			-- -- tbl[localzone] = tostring(mapid)
-		-- -- end
-	-- end
-	-- return tbl
--- end
-
-function WoWPro_Arrow:TestCallback(self, map,floor,w,h)
-	callbacks:Fire("ArrowMapChanged", map, floor)
-	print("MapChanged: ", map, floor)
+Box_OnDragStop = function(self, button, down)
+	self:StopMovingOrSizing()
 end
 
-function WoWPro_Arrow:OnEnable()
-	WoWPro_ArrowDB = {}
-	--WoWPro_ArrowDB.localzones = CreateLocalZonesTable(self)
-	-- mapdata.RegisterCallback(self, "MapChanged", "TestCallback")
-	-- WoWProArrow.RegisterCallback(self, "ArrowMapChanged", "TestCallbackArrow")
+CreateBox = function(stringname)
+	local name = nil
+	if stringname and type(stringname) == "string" then
+		name = stringname
+	end
+	local frame = CreateFrame("Button", name, UIParent)
+	
+	frame:SetWidth(200)
+	frame:SetHeight(32)
+	frame:SetToplevel(1)
+	frame:SetFrameStrata("LOW")
+	frame:SetMovable(true)
+	frame:EnableMouse(true)
+	frame:SetClampedToScreen()
+	frame:RegisterForDrag("LeftButton")
+	frame:RegisterForClicks("RightButtonUp")
+	frame:SetPoint("TOP", Minimap, "BOTTOM", -100, -10)
+
+	frame.Text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	frame.Text:SetJustifyH("CENTER")
+	frame.Text:SetPoint("CENTER", 0, 0)
+
+	frame:SetBackdrop({
+		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+		edgeSize = 16,
+		insets = {left = 4, right = 4, top = 4, bottom = 4},
+	})
+	frame:SetBackdropColor(0,0,0,0.4)
+	frame:SetBackdropBorderColor(1,0.8,0,0.8)
+
+			-- Set behavior scripts
+	-- frame:SetScript("OnUpdate", Box_OnUpdate)
+	frame:SetScript("OnDragStop", Box_OnDragStop)
+	frame:SetScript("OnDragStart", Box_OnDragStart)
+		
+	-- Show the frame
+	frame:Show()
+	
+	return frame
+end
+
+MapID_OnUpdate = function(self, elapsed)
+	local mapid = GetCurrentMapAreaID()
+	if not mapid then
+		self.Text:SetText("id: nil")
+	else
+		mapid = tostring(mapid)
+		self.Text:SetFormattedText("%s %d", "id: ", mapid)
+	end
+	self.Text:Show()
+end
+
+MapFileName_OnUpdate = function(self, elapsed)
+	local filename = GetMapInfo()
+	if not filename then
+		self.Text:SetText("filename: nil")
+	else
+		filename = tostring(filename)
+		self.Text:SetFormattedText("%s %s", "zone: ", filename)
+	end
+	self.Text:Show()
+end
+
+MapLocalName_OnUpdate = function(self, elapsed)
+	local mapid = GetCurrentMapAreaID()
+	local localname = mapdata:MapLocalize(mapid)
+	if not localname then
+		self.Text:SetText("localname: nil")
+	else
+		localname = tostring(localname)
+		self.Text:SetFormattedText("%s %s", "local: ", localname)
+	end
+	self.Text:Show()
+end
+
+MapLocal2Name_OnUpdate = function(self, elapsed)
+	local mapid = GetCurrentMapAreaID()
+	local localname = GetZoneText()
+	if not localname then
+		self.Text:SetText("localname: nil")
+	else
+		localname = tostring(localname)
+		self.Text:SetFormattedText("%s %s", "local2: ", localname)
+	end
+	self.Text:Show()
 end
