@@ -1,0 +1,13 @@
+## Interface: 40000
+## Title: WoW-Pro Arrow
+## Notes: Arrow for WoWPro Mapping
+## Author: Silvann
+## SavedVariables: WoWPro_ArrowDB
+## Version: 0.0.1
+
+libs\LibStub\LibStub.lua
+libs\AceAddon-3.0\AceAddon-3.0.xml
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\LibMapData-1.0\library.lua
+
+WoWPro_Arrow.lua

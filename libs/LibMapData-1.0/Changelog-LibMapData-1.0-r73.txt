@@ -1,0 +1,57 @@
+------------------------------------------------------------------------
+r73 | kagaro | 2010-12-11 23:49:50 +0000 (Sat, 11 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Added a phasing hack for Hyal
+------------------------------------------------------------------------
+r72 | kagaro | 2010-12-11 15:53:13 +0000 (Sat, 11 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Phasing hacks
+------------------------------------------------------------------------
+r71 | kagaro | 2010-12-10 12:13:57 +0000 (Fri, 10 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/LibMapData-1.0.toc
+
+Removed X-Compat toc, as its no longer has pre shattering data in it.
+------------------------------------------------------------------------
+r69 | kagaro | 2010-12-09 22:37:08 +0000 (Thu, 09 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Remvoed extra link field from the dataset
+------------------------------------------------------------------------
+r68 | kagaro | 2010-12-09 22:24:06 +0000 (Thu, 09 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Fix a bug in GetContinentFromMap
+------------------------------------------------------------------------
+r66 | kagaro | 2010-12-03 00:25:12 +0000 (Fri, 03 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Added new function GetContinentFromMap(map) will return the in-game continent index for the given map
+------------------------------------------------------------------------
+r65 | kagaro | 2010-12-03 00:03:43 +0000 (Fri, 03 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Fixes for TomTomLight
+------------------------------------------------------------------------
+r64 | kagaro | 2010-12-02 01:29:24 +0000 (Thu, 02 Dec 2010) | 3 lines
+Changed paths:
+   M /trunk/library.lua
+
+Regenerated data. Last set of hotfixes removed all map data about most BC instances (ramparts is about it. in game they also changed the map ids you get when asking for it inside and get 0,0 for poistions in those instances)
+
+Fixed missing transform data
+------------------------------------------------------------------------
+r63 | Cladhaire | 2010-12-01 23:24:29 +0000 (Wed, 01 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Fix some copy/pasta errors
+------------------------------------------------------------------------
