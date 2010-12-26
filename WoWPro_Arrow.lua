@@ -17,19 +17,33 @@
 	-- WAYPOINT_ADDED (wpID, x, y, zone, floor, opt)
 	-- WAYPOINT_CLEARED (wpID, x, y, zone, floor, opt)
 	-- WAYPOINT_DISTANCE (wpID, distance)
+	-- WAYPOINT_ARRIVAL (wpID, distance)
 	
 -- TODO: support label text
+-- TODO - tests:
+-- see if GetCurrentMapAreaID changes x,y if worlmap changes (I think so)
+--- if so, see if you can overcome that by using SetMapToCurrent quickly
+-- see eventtrace when browsing world map, if the changedmap triggers
 
+----------
 -- Libs --
 WoWPro_Arrow = LibStub("AceAddon-3.0"):NewAddon("Arrow")
 local mapdata = LibStub("LibMapData-1.0")
 local callbacks = LibStub("CallbackHandler-1.0"):New(WoWPro_Arrow)
+----------
 
+--------------------------
 -- local lua/Blizz APIs --
 local twipe, type = wipe, type
 local GetPlayerFacing, GetPlayerMapPosition = GetPlayerFacing, GetPlayerMapPosition
 local SetMapToCurrentZone, GetCurrentMapAreaID = SetMapToCurrentZone, GetCurrentMapAreaID
+local GetCurrentMapDungeonLevel = GetCurrentMapDungeonLevel
+local PI = math.pi
+local PI2 = math.pi * 2
+local atan2, abs = math.atan2, math.abs
+--------------------------
 
+---------------------------------
 -- local function declarations --
 local SetArrowToWaypoint, AddWaypoint, IsArrowSet, ClearArrow
 local RemoveWaypoint, ClearWaypoint, CreateCrazyArrow
@@ -37,30 +51,23 @@ local RemoveWaypoint, ClearWaypoint, CreateCrazyArrow
 local Box_OnDragStart, Box_OnDragStop, CreateBox
 local MapID_OnUpdate, MapLocal2Name_OnUpdate, MapLocalName_OnUpdate
 local MapFileName_OnUpdate
+---------------------------------
 
-
--- Constant variables --
-
--- Waypoint default options
-local wp_defaults = {
+---------------
+-- Constants --
+local wpDefaults = { -- Waypoint default options
 ["cleararrival"] = true,
 ["arrivaldistance"] = 10,
 ["autosetarrow"] = true,
-["icon"] = nil,
-["distMsgs"] = nil,
+["autosetnear"] = true,
+["icon"] = "Interface\\GossipFrame\\AvailableQuestIcon",
+["distMsgs"] = {},
+["label"] = "WoWPro_Arrow",
 }
-
--- localized continent names
-local continentNames = {GetMapContinents()}
-
--- localization
-local locale = GetLocale()
-
--- Map IDs covered by lib
-local allZoneIDs = mapdata:GetAllMapIDs()
-
--- enUS/Default localized zones
-local enUSZones = {
+local continentNames = {GetMapContinents()} -- localized continent names
+local locale = GetLocale() -- localization
+local allZoneIDs = mapdata:GetAllMapIDs() -- Map IDs covered by lib
+local enUSZones = { -- enUS/Default localized zones
 	["Dire Maul"] = "699",
 	["The Hinterlands"] = "26",
 	["Icecrown Citadel"] = "604",
@@ -192,76 +199,18 @@ local enUSZones = {
 	["Ruins of Gilneas"] = "684",
 	["Zul'Drak"] = "496",
 }
+---------------
 
--- other variables --
+------------------------
+-- "global" variables --
 local waypoints = {}
 local arrowWaypoint
 local localeZones
 local currentZoneID
-
--- util functions --
-
--- set color gradient given percentage
--- from TomTomLite
-local function ColorGradient(perc, ...)
-    local num = select("#", ...)
-    local hexes = type(select(1, ...)) == "string"
-
-    if perc == 1 then
-        return select(num-2, ...), select(num-1, ...), select(num, ...)
-    end
-
-    num = num / 3
-
-    local segment, relperc = math.modf(perc*(num-1))
-    local r1, g1, b1, r2, g2, b2
-    r1, g1, b1 = select((segment*3)+1, ...), select((segment*3)+2, ...), select((segment*3)+3, ...)
-    r2, g2, b2 = select((segment*3)+4, ...), select((segment*3)+5, ...), select((segment*3)+6, ...)
-
-    if not r2 or not g2 or not b2 then
-        return r1, g1, b1
-    else
-        return r1 + (r2-r1)*relperc,
-        g1 + (g2-g1)*relperc,
-        b1 + (b2-b1)*relperc
-    end
-end
-
--- check if a mapID is valid, according to the lib and some hacks
-local function IsValidZoneID(id)
-	for _,zoneid in pairs(allZoneIDs) do
-		if id == zoneid and zoneid ~= 542  -- wrong TheArgentColiseum
-						and zoneid ~= 751 then -- not real?
-			return true
-		end
-	end
-	return false
-end
-
--- if localization is not enUS, build localized table, based on lib and hacks
-local function CreateLocaleZones()
-	if locale == "enUS" then
-		return nil
-	else
-		local tbl = {}
-		for i,zoneid in ipairs(allZoneIDs) do
-			local localzone
-			if zoneid ~= 751 and zoneid ~= 539 then
-				localzone = mapdata:MapLocalize(zoneid)
-				tbl[localzone] = zoneid
-			end
-		end
-		tbl["Gilneas"] = 545
-		if locale == "esMX" then
-			tbl["Ciudad de Gilneas"] = 611
-		end
-		
-		local mt = {}
-		mt.__index = tbl
-		setmetatable(enUSZones, mt)
-		return tbl
-	end
-end
+local currentFloor
+local currentContinent
+local waypointsOrder = {}
+------------------------
 
 -----------------
 -- Public APIs --
@@ -313,11 +262,140 @@ function WoWPro_Arrow:RemoveAllWaypoints()
 		RemoveWaypoint(wpID)
 	end
 end
+
+-- set a options for a waypoint dinamically, after creation
+function WoWPro_Arrow:SetWaypointOpt(wpID, opt, ...)
+	if not wpID or not waypoints[wpID] or not opt then
+		print("Invalid Waypoint")
+		return nil
+	end
+	
+	local validOpt = ...
+	
+	if type(opt) == "table" then
+		for k,v in pairs(opt) do
+			validOpt = TestSpecificOpt(k, v)
+			if validOpt ~= nil then
+				waypoints[wpID]["opt"][k] = validOpt
+			end
+		end
+		return true
+	end
+	
+	if type(opt) == "string" and validOpt ~= nil then 
+		validOpt = TestSpecificOpt(opt, validOpt)
+		if validOpt ~= nil then
+			waypoints[wpID]["opt"][opt] = validOpt
+			return true
+		end
+	end
+	return nil
+end
+
+-- name says it all. Only works for waypoints in the same continent
+-- as current
+function WoWPro_Arrow:GetNearestWaypoint()
+	local distMin, wpidMin
+	local cx, cy = GetPlayerMapPosition("player")
+	for wpid,waypoint in pairs(waypoints) do
+		local x, y, zoneid, floor = unpack(waypoint)
+		local dist
+		if IsSameContinent(zoneid, currentZoneID) then
+			dist = mapdata:DistanceWithinContinent(currentZoneID, currentFloor, cx, cy, zoneid, floor, x, y)
+			if not distMin or dist < distMin then
+				distMin = dist
+				wpidMin = wpid
+			end
+		end
+	end
+	return wpidMin
+end
+
 -- ending public APIs --
 ------------------------
 
+--------------------
+-- util functions --
+--------------------
 
+-- set color gradient given percentage
+-- from TomTomLite
+local function ColorGradient(perc, ...)
+    local num = select("#", ...)
+    local hexes = type(select(1, ...)) == "string"
+
+    if perc == 1 then
+        return select(num-2, ...), select(num-1, ...), select(num, ...)
+    end
+
+    num = num / 3
+
+    local segment, relperc = math.modf(perc*(num-1))
+    local r1, g1, b1, r2, g2, b2
+    r1, g1, b1 = select((segment*3)+1, ...), select((segment*3)+2, ...), select((segment*3)+3, ...)
+    r2, g2, b2 = select((segment*3)+4, ...), select((segment*3)+5, ...), select((segment*3)+6, ...)
+
+    if not r2 or not g2 or not b2 then
+        return r1, g1, b1
+    else
+        return r1 + (r2-r1)*relperc,
+        g1 + (g2-g1)*relperc,
+        b1 + (b2-b1)*relperc
+    end
+end
+
+-- set alpha gradient given percentage
+local function AlphaGradient(perc, goodAlpha, badAlpha)
+	local goodAlpha = goodAlpha or 1.0
+	local badAlpha = badAlpha or 0.2
+	
+	return ((goodAlpha-badAlpha)*perc + badAlpha)
+end
+
+-- check if a mapID is valid, according to the lib and some hacks
+local function IsValidZoneID(id)
+	for _,zoneid in pairs(allZoneIDs) do
+		if id == zoneid and zoneid ~= 542  -- wrong TheArgentColiseum
+						and zoneid ~= 751 then -- not real?
+			return true
+		end
+	end
+	return false
+end
+
+-- if localization is not enUS, build localized table, based on lib and hacks
+-- also set fallback tables
+local function CreateLocaleZones()
+	local mt = {}
+	local tbl = {}
+	if locale == "enUS" then
+		mt.__index = mapdata:MapAreaId -- check if this is right
+	else
+		mtlocale = {}
+		for i,zoneid in ipairs(allZoneIDs) do
+			local localzone
+			if zoneid ~= 751 and zoneid ~= 539 then
+				localzone = mapdata:MapLocalize(zoneid)
+				tbl[localzone] = zoneid
+			end
+		end
+		tbl["Gilneas"] = 545
+		if locale == "esMX" then
+			tbl["Ciudad de Gilneas"] = 611
+		end
+				
+		mt.__index = tbl
+		mtlocal.__index = mapdata:MapAreaId
+		setmetatable(tbl, mtlocale)
+	end
+	setmetatable(enUSZones, mt)
+	return tbl
+end
+--------------------
+
+-----------------------------------------
 -- local implementation, function, etc --
+-----------------------------------------
 
 function WoWPro_Arrow:OnInitialize()
 	self.arrow = CreateCrazyArrow("WoWProArrow")
@@ -338,6 +416,7 @@ function WoWPro_Arrow:OnInitialize()
 end
 
 function WoWPro_Arrow:OnEnable()
+	CreateLocaleZones()
 	mapdata.RegisterCallback(self, "MapChanged", "MapChangedCallback")
 end
 
@@ -347,79 +426,150 @@ function WoWPro_Arrow:MapChangedCallback(self, map, floor, ...)
 	local worldMapZoneID = GetCurrentMapAreaID()
 	SetMapToCurrentZone()
 	currentZoneID = GetCurrentMapAreaID()
-	-- restoring
-	SetMapByID(worldMapZoneID)	
+	currentContinent = mapdata:GetContinentFromMap(currentZoneID)
+	currentFloor = GetCurrentMapDungeonLevel()
+	-- restoring if worldmap is shown
+	if WorldMapFrame:IsVisible() then
+		SetMapByID(worldMapZoneID)
+	end
 end
 
-
 SetArrowToWaypoint = function(wpID)
-	-- TODO: falta mais coisas
+	-- TODO: falta mais coisas?
 	if wpID and waypoints[wpID] then
 		arrowWaypoint = wpID
-		self.arrow:Show()
+		WoWPro_Arrow.arrow:Show()
+		return true
 	else
 		return false
 	end
 end
 
-AddWaypoint = function(x, y, zone, floor, opt)
-	if type(tonumber(x)) ~= "number" or type(tonumber(y)) ~= "number" then
-		print("Invalid coordinate(s)")
-		return nil
+IsSameContinent = function(ZoneID1, ZoneID2)
+	if ZoneID1 and ZoneID2 and IsValidZoneID(ZoneID1) and IsValidZoneID(ZoneID2) then
+		return mapdata:GetContinentFromMap(ZoneID1) == mapdata:GetContinentFromMap(ZoneID2)
+	else
+		return false
+	end
+end
+
+SetAutoArrow = function()
+	local wpIDNear = WoWPro_Arrow:GetNearestWaypoint()
+	if wpIDNear and waypoints[wpIDNear].opt.autosetarrow and waypoints[wpIDNear].opt.autosetnear then
+		SetArrowToWaypoint(wpIDNear)
+		return wpIDNear
 	end
 	
-	local zoneid = nil
+	for i,wpID in pairs(waypointsOrder) do
+		if wpID and waypoints[wpID].opt.autosetarrow and waypoints[wpID].opt.autosetnear then
+			SetArrowToWaypoint(wpID)
+			return wpID
+		end
+	end
+	return false
+end
+
+TestCoordsAdd = function(x, y)
+	--TODO: check also boundaries?
+	-- using current if coords not provided or invalid
+	if type(tonumber(x)) ~= "number" or type(tonumber(y)) ~= "number" then
+		if x or y then
+			print("Invalid coordinate(s), using current position")
+		end
+		return GetPlayerMapPosition("player")
+	end
+	return x, y
+end
+
+TestZoneAdd = function(zone)
+	local zoneid
 	if zone then
 		if type(zone) == "string" then
 			-- look-up in the English table first (more stable), with the locale fallback
-			zoneid = enUSZones[zone]
-			if not zoneid then
-				-- look-up if it's a zone filename
-				zoneid = mapdata:MapAreaId(zone)
-			end
+			-- and/or assuming it's a zone filename fallback
+			zoneid = tonumber(enUSZones[zone])
 		elseif type(zone) == "number" then
 			-- check to see if it's a zone id
-			if IsValidZoneID(zone) then
-				zoneid = zone
-			end
+			zoneid = zone
 		end
-		
-		-- input zone is not valid, trying to use current
-		if not zoneid then
-			print("Warning: Invalid input zone")
-			zoneid = GetCurrentMapAreaID()
-		end
-	-- if zone is not given, try to use current
-	else
-		print("Warning: Invalid input zone")
-		zoneid = GetCurrentMapAreaID()
+	else	
+		-- if zone is not given, try to use current
+		zoneid = currentZoneID()
 	end
 	
-	zoneid = tonumber(zoneid)
-	
-	-- if, after all that, zoneid still invalid, return nil
-	if not IsValidZoneID(zoneid) then
+	if IsValidZoneID(zoneid) then
+		return zoneid
+	else
 		print("Fail, can't find the zone")
 		return nil
 	end
-	
-	--floor tests
-	local validFloor = 0
+end
+
+TestFloorAdd = function(floor)
 	local numFloors = mapdata:MapFloors(zoneid)
 	if floor then
 		if (type(tonumber(floor)) ~= "number") or (tonumber(floor) >= numFloors) then
 			print("Warning: Invalid floor, using '0'")
+			return 0
 		else
-			validFloor = tonumber(floor)
+			return tonumber(floor)
 		end
 	end
-	
-	-- deal with opt later
-	local opt = opt or wp_defaults
+	return 0
+end
+
+TestSpecificOpt = function(k, value)
+	if value ~= nil then
+		if (k == "cleararrival" or k == "autosetarrow" or k == "autosetnear") and type(value) == "boolean" then
+			return value
+		elseif k == "arrivaldistance" and type(value) == "number" and value > 0 then
+			return value
+		elseif k == "distMsgs" then
+			if type(value) == "table" then
+				-- copy just the array part and if distance is valid
+				local tbl = {}
+				for i,v in ipairs(value) do
+					if type(v) == "number" and v > 0 then
+						tinsert(tbl, v)
+					end
+				end
+				return tbl
+			elseif type(value) == "number" and value > 0 then
+				return {value}
+			end
+		elseif (k == "label" or k == "icon") and type(value) == "string" then
+			return value
+		end
+	end
+	return nil
+end
+
+TestOptAdd = function(opt)
+	if not opt or type(opt) ~= "table" then
+		return wpDefaults
+	end
+
+	for k,v in pairs(wpDefaults) do
+		opt.k = TestSpecificOpt(opt.k) or v
+	end
+	return opt
+end
+
+
+
+AddWaypoint = function(x, y, zone, floor, opt)
+	local x, y = TestCoordsAdd(x, y)
+	local zoneid = TestZoneAdd(zone)
+	if not x or not y or not zoneid then
+		print("Fail, waypoint not added")
+		return nil
+	end
+	local floor = TestFloorAdd(floor)
+	local opt = TestOptAdd(opt)
 	
 	-- saving waypoint as and in a table
-	local waypoint = {x, y, zoneid, validFloor, opt}
-	local wpID = tonumber(zoneid..(mapdata:EncodeLoc(x, y, validFloor)))
+	local waypoint = {x, y, zoneid, floor, opt}
+	local wpID = tonumber(zoneid..(mapdata:EncodeLoc(x, y, floor)))
 	
 	if waypoints[wpID] then
 		-- there's a waypoint in that location; override?
@@ -427,7 +577,9 @@ AddWaypoint = function(x, y, zone, floor, opt)
 	end
 	
 	waypoints[wpID] = waypoint
-	WoWPro_Arrow:SetArrowToWaypoint(wpID)
+	table.insert(waypointsOrder, wpID, 1)
+	
+	SetAutoArrow()
 	
 	callbacks:Fire("WAYPOINT_ADDED", wpID, x, y, zone, floor, opt)
 
@@ -476,6 +628,64 @@ ClearWaypoint = function(wpID)
 	return event
 end
 
+OnUpdateArrow = function(self, elapsed)
+
+	-- Get the current position
+	local cx, cy = GetPlayerMapPosition("player")
+	-- if the player is in an instance without a map then hide
+	if cx == 0 and cy == 0 then
+		self:Hide()
+		return
+	end
+	
+	local x, y, zone, floor, opt = WoWPro_Arrow:GetWaypoint(arrowWaypoint)
+	local continent = mapdata:GetContinentFromMap(zone)
+	
+	self.title:SetFormattedText(opt.label)
+	self.icon:SetTexture(opt.icon)
+	
+	if (continent ~= currentContinent) then
+		self.arrow:SetVertexColor(1,1,1,0.5)
+		self.arrow:SetRotation(0)
+		self.subtitle:SetFormattedText("Go to continent %s", continentNames[continent])
+	
+	elseif (floor ~= currentFloor) then
+		self.arrow:SetVertexColor(1,1,1,0.5)
+		if floor > currentFloor
+			self.arrow:SetRotation(0)
+		else
+			self.arrow:SetRotation(180)
+		end
+		self.subtitle:SetFormattedText("Go to floor %d", floor)
+
+	else	
+		local distance, xd, yd = mapdata:DistanceWithinContinent(currentZoneID, currentFloor, cx, cy, zone, floor, x, y)
+
+		local angle = atan2(xd, yd)
+		if angle > 0 then
+			angle = PI2 - angle
+		else
+			angle = -angle
+		end
+
+		local facing = GetPlayerFacing()
+		local faceangle = angle - facing
+
+		local perc = abs((PI - abs(faceangle)) / PI)
+		local gr,gg,gb = 0,1,0
+		local mr,mg,mb = 1,1,0
+		local br,bg,bb = 1,0,0
+		local r,g,b = ColorGradient(perc, br, bg, bb, mr, mg, mb, gr, gg, gb)
+		
+		local a = AlphaGradient(perc)
+		
+		self.arrow:SetVertexColor(gr,gg,gb,a)
+		self.arrow:SetRotation(faceangle)
+
+		self.subtitle:SetFormattedText("%.1f yards", distance)
+	end
+end
+
 CreateCrazyArrow = function(name, parent)
     parent = parent or UIParent
     local frame = CreateFrame("Button", name, parent)
@@ -492,55 +702,16 @@ CreateCrazyArrow = function(name, parent)
     frame.title:SetPoint("TOP", frame, "BOTTOM", 0, 0)
     frame.info:SetPoint("TOP", frame.title, "BOTTOM", 0, 0)
     frame.subtitle:SetPoint("TOP", frame.info, "BOTTOM", 0, 0)
+	
+	frame.icon = frame:CreateTexture("OVERLAY")
+	frame.icon:SetWidth(15)
+	frame.icon:SetHeight(15)
+	frame.icon:SetPoint("RIGHT", frame.subtitle, "LEFT", 5, 0)
 
     frame:Hide()
 
-    local PI2 = math.pi * 2
-
     -- Set up the OnUpdate handler
-    frame:SetScript("OnUpdate", function(self, elapsed)
-	
-		if not arrowWaypoint then
-			self:Hide()
-			return
-		end
-	
-        -- Get the current location
-        local cmap = GetCurrentMapAreaID()
-        local cx, cy = GetPlayerMapPosition("player")
-		local ccontinent = continentNames[mapdata:GetContinentFromMap(cmap)]
-        local x, y, zone, floor, opt = WoWPro_Arrow:GetWaypoint(arrowWaypoint)
-		local continent = continentNames[mapdata:GetContinentFromMap(zone)]
-		
-		if (continent ~= ccontinent) then
-			self.arrow:SetVertexColor(1,1,1,0.5)
-			self.subtitle:SetFormattedText("Go to continent %s", continent)
-		else
-		
-			local distance, xd, yd = mapdata:DistanceWithinContinent(cmap, 0, cx, cy, zone, floor, x, y)
-
-			local angle = math.atan2(xd, yd)
-			if angle > 0 then
-				angle = PI2 - angle
-			else
-				angle = -angle
-			end
-
-			local facing = GetPlayerFacing()
-			local faceangle = angle - facing
-
-			local perc = math.abs((math.pi - math.abs(faceangle)) / math.pi)
-			local gr,gg,gb = 0,1,0
-			local mr,mg,mb = 1,0,0
-			local br,bg,bb = 1,1,0
-			local r,g,b = ColorGradient(perc, br, bg, bb, mr, mg, mb, gr, gg, gb)
-			
-		    self.arrow:SetVertexColor(r,g,b)
-			self.arrow:SetRotation(faceangle)
-
-			self.subtitle:SetFormattedText("%.1f yards", distance)
-		end
-    end)
+    frame:SetScript("OnUpdate", OnUpdateArrow)
 
     -- Code to handle moving the frame
     frame:SetMovable(true)
@@ -556,7 +727,7 @@ CreateCrazyArrow = function(name, parent)
 
     return frame
 end
-
+-----------------------------------------
 
 
 
