@@ -47,6 +47,11 @@ local atan2, abs = math.atan2, math.abs
 -- local function declarations --
 local SetArrowToWaypoint, AddWaypoint, IsArrowSet, ClearArrow
 local RemoveWaypoint, ClearWaypoint, CreateCrazyArrow
+local IsSameContinent, SetAutoArrow
+local TestCoordsAdd, TestZoneAdd, TestFloorAdd
+local TestSpecificOpt, TestOptAdd
+
+
 -- tests, remove later
 local Box_OnDragStart, Box_OnDragStop, CreateBox
 local MapID_OnUpdate, MapLocal2Name_OnUpdate, MapLocalName_OnUpdate
@@ -271,12 +276,13 @@ function WoWPro_Arrow:SetWaypointOpt(wpID, opt, ...)
 	end
 	
 	local validOpt = ...
+	local optOrig = waypoints[wpID][5]
 	
 	if type(opt) == "table" then
 		for k,v in pairs(opt) do
 			validOpt = TestSpecificOpt(k, v)
 			if validOpt ~= nil then
-				waypoints[wpID]["opt"][k] = validOpt
+				optOrig.k = validOpt
 			end
 		end
 		return true
@@ -285,7 +291,7 @@ function WoWPro_Arrow:SetWaypointOpt(wpID, opt, ...)
 	if type(opt) == "string" and validOpt ~= nil then 
 		validOpt = TestSpecificOpt(opt, validOpt)
 		if validOpt ~= nil then
-			waypoints[wpID]["opt"][opt] = validOpt
+			optOrig.opt = validOpt
 			return true
 		end
 	end
@@ -369,7 +375,9 @@ local function CreateLocaleZones()
 	local mt = {}
 	local tbl = {}
 	if locale == "enUS" then
-		mt.__index = mapdata:MapAreaId -- check if this is right
+		mt.__index = function(self, key)
+			return mapdata:MapAreaId(key)
+		end
 	else
 		mtlocale = {}
 		for i,zoneid in ipairs(allZoneIDs) do
@@ -384,9 +392,13 @@ local function CreateLocaleZones()
 			tbl["Ciudad de Gilneas"] = 611
 		end
 				
-		mt.__index = tbl
-		mtlocal.__index = mapdata:MapAreaId
-		setmetatable(tbl, mtlocale)
+		mt.__index = function(self, key)
+			return tbl[key]
+		end
+		mtlocal.__index = function(self, key)
+			return mapdata:MapAreaId(key)
+		end
+		setmetatable(tbl, mtlocal)
 	end
 	setmetatable(enUSZones, mt)
 	return tbl
@@ -421,7 +433,7 @@ function WoWPro_Arrow:OnEnable()
 end
 
 -- tentar fazer local depois
--- see map lib, if worlmap is open, msg isnt sent?
+-- see map lib, if worlmap is open, msg isnt sent? no :(
 function WoWPro_Arrow:MapChangedCallback(self, map, floor, ...)
 	local worldMapZoneID = GetCurrentMapAreaID()
 	SetMapToCurrentZone()
@@ -432,9 +444,10 @@ function WoWPro_Arrow:MapChangedCallback(self, map, floor, ...)
 	if WorldMapFrame:IsVisible() then
 		SetMapByID(worldMapZoneID)
 	end
+	print(currentZoneID)
 end
 
-SetArrowToWaypoint = function(wpID)
+function SetArrowToWaypoint(wpID)
 	-- TODO: falta mais coisas?
 	if wpID and waypoints[wpID] then
 		arrowWaypoint = wpID
@@ -445,7 +458,7 @@ SetArrowToWaypoint = function(wpID)
 	end
 end
 
-IsSameContinent = function(ZoneID1, ZoneID2)
+function IsSameContinent(ZoneID1, ZoneID2)
 	if ZoneID1 and ZoneID2 and IsValidZoneID(ZoneID1) and IsValidZoneID(ZoneID2) then
 		return mapdata:GetContinentFromMap(ZoneID1) == mapdata:GetContinentFromMap(ZoneID2)
 	else
@@ -453,23 +466,30 @@ IsSameContinent = function(ZoneID1, ZoneID2)
 	end
 end
 
-SetAutoArrow = function()
+function SetAutoArrow()
 	local wpIDNear = WoWPro_Arrow:GetNearestWaypoint()
-	if wpIDNear and waypoints[wpIDNear].opt.autosetarrow and waypoints[wpIDNear].opt.autosetnear then
-		SetArrowToWaypoint(wpIDNear)
-		return wpIDNear
+	if wpIDNear then
+		local opt = waypoints[wpIDNear][5]
+		if opt.autosetarrow and opt.autosetnear then
+			SetArrowToWaypoint(wpIDNear)
+			return wpIDNear
+		end
 	end
-	
-	for i,wpID in pairs(waypointsOrder) do
-		if wpID and waypoints[wpID].opt.autosetarrow and waypoints[wpID].opt.autosetnear then
-			SetArrowToWaypoint(wpID)
-			return wpID
+
+	local opt
+	for i,wpID in ipairs(waypointsOrder) do
+		if wpID then
+			opt = waypoints[wpID][5]
+			if opt.autosetarrow then
+				SetArrowToWaypoint(wpID)
+				return wpID
+			end
 		end
 	end
 	return false
 end
 
-TestCoordsAdd = function(x, y)
+function TestCoordsAdd(x, y)
 	--TODO: check also boundaries?
 	-- using current if coords not provided or invalid
 	if type(tonumber(x)) ~= "number" or type(tonumber(y)) ~= "number" then
@@ -481,7 +501,7 @@ TestCoordsAdd = function(x, y)
 	return x, y
 end
 
-TestZoneAdd = function(zone)
+function TestZoneAdd(zone)
 	local zoneid
 	if zone then
 		if type(zone) == "string" then
@@ -494,7 +514,7 @@ TestZoneAdd = function(zone)
 		end
 	else	
 		-- if zone is not given, try to use current
-		zoneid = currentZoneID()
+		zoneid = currentZoneID
 	end
 	
 	if IsValidZoneID(zoneid) then
@@ -505,10 +525,10 @@ TestZoneAdd = function(zone)
 	end
 end
 
-TestFloorAdd = function(floor)
+function TestFloorAdd(floor)
 	local numFloors = mapdata:MapFloors(zoneid)
 	if floor then
-		if (type(tonumber(floor)) ~= "number") or (tonumber(floor) >= numFloors) then
+		if not numFloors or (type(tonumber(floor)) ~= "number") or (tonumber(floor) >= numFloors) then
 			print("Warning: Invalid floor, using '0'")
 			return 0
 		else
@@ -518,7 +538,7 @@ TestFloorAdd = function(floor)
 	return 0
 end
 
-TestSpecificOpt = function(k, value)
+function TestSpecificOpt(k, value)
 	if value ~= nil then
 		if (k == "cleararrival" or k == "autosetarrow" or k == "autosetnear") and type(value) == "boolean" then
 			return value
@@ -544,7 +564,7 @@ TestSpecificOpt = function(k, value)
 	return nil
 end
 
-TestOptAdd = function(opt)
+function TestOptAdd(opt)
 	if not opt or type(opt) ~= "table" then
 		return wpDefaults
 	end
@@ -557,19 +577,20 @@ end
 
 
 
-AddWaypoint = function(x, y, zone, floor, opt)
+function AddWaypoint(x, y, zone, floor, opt)
+	print("And here")
 	local x, y = TestCoordsAdd(x, y)
 	local zoneid = TestZoneAdd(zone)
 	if not x or not y or not zoneid then
 		print("Fail, waypoint not added")
 		return nil
 	end
-	local floor = TestFloorAdd(floor)
+	local floor = TestFloorAdd(floor, zoneid)
 	local opt = TestOptAdd(opt)
 	
 	-- saving waypoint as and in a table
 	local waypoint = {x, y, zoneid, floor, opt}
-	local wpID = tonumber(zoneid..(mapdata:EncodeLoc(x, y, floor)))
+	local wpID = tonumber(currentZoneID..(mapdata:EncodeLoc(x, y, 0)))
 	
 	if waypoints[wpID] then
 		-- there's a waypoint in that location; override?
@@ -577,11 +598,13 @@ AddWaypoint = function(x, y, zone, floor, opt)
 	end
 	
 	waypoints[wpID] = waypoint
-	table.insert(waypointsOrder, wpID, 1)
+	table.insert(waypointsOrder, 1, wpID)
+	
+	print("Got here?")
 	
 	SetAutoArrow()
 	
-	callbacks:Fire("WAYPOINT_ADDED", wpID, x, y, zone, floor, opt)
+	callbacks:Fire("WAYPOINT_ADDED", wpID, x, y, zoneid, floor, opt)
 
 	return wpID
 end
@@ -589,7 +612,7 @@ end
 
 -- see if the arrow is poiting for this waypoint
 -- if called with no parameter, return waypointID
-IsArrowSet = function(wpID)
+function IsArrowSet(wpID)
 	if wpID and arrowWaypoint then
 		return (wpID == arrowWaypoint)
 	else
@@ -597,15 +620,16 @@ IsArrowSet = function(wpID)
 	end
 end
 
-ClearArrow = function()
+function ClearArrow()
 	if IsArrowSet() then
 		arrowWaypoint = nil
 	end
+	WoWPro_Arrow.arrow:Hide()
 	-- Hide arrow
 	-- or try to acquire a new waypoint if auto is set
 end
 
-RemoveWaypoint = function(wpID)
+function RemoveWaypoint(wpID)
 	if IsArrowSet(wpID) then
 		ClearArrow()
 	end
@@ -619,7 +643,7 @@ RemoveWaypoint = function(wpID)
 	end
 end
 
-ClearWaypoint = function(wpID)
+function ClearWaypoint(wpID)
 	local x, y, zone, floor, opt = WoWPro_Arrow:GetWaypoint(wpID)
 	local event = WoWPro_Arrow:RemoveWaypoint(wpID)
 	if event then
@@ -628,17 +652,17 @@ ClearWaypoint = function(wpID)
 	return event
 end
 
-OnUpdateArrow = function(self, elapsed)
+local function OnUpdateArrow(self, elapsed)
 
 	-- Get the current position
 	local cx, cy = GetPlayerMapPosition("player")
 	-- if the player is in an instance without a map then hide
-	if cx == 0 and cy == 0 then
+	if (cx == 0 and cy == 0) or not arrowWaypoint then
 		self:Hide()
 		return
 	end
-	
 	local x, y, zone, floor, opt = WoWPro_Arrow:GetWaypoint(arrowWaypoint)
+		
 	local continent = mapdata:GetContinentFromMap(zone)
 	
 	self.title:SetFormattedText(opt.label)
@@ -651,7 +675,7 @@ OnUpdateArrow = function(self, elapsed)
 	
 	elseif (floor ~= currentFloor) then
 		self.arrow:SetVertexColor(1,1,1,0.5)
-		if floor > currentFloor
+		if floor > currentFloor then
 			self.arrow:SetRotation(0)
 		else
 			self.arrow:SetRotation(180)
@@ -686,7 +710,7 @@ OnUpdateArrow = function(self, elapsed)
 	end
 end
 
-CreateCrazyArrow = function(name, parent)
+function CreateCrazyArrow(name, parent)
     parent = parent or UIParent
     local frame = CreateFrame("Button", name, parent)
 
@@ -706,7 +730,7 @@ CreateCrazyArrow = function(name, parent)
 	frame.icon = frame:CreateTexture("OVERLAY")
 	frame.icon:SetWidth(15)
 	frame.icon:SetHeight(15)
-	frame.icon:SetPoint("RIGHT", frame.subtitle, "LEFT", 5, 0)
+	frame.icon:SetPoint("RIGHT", frame.title, "LEFT", -8, 0)
 
     frame:Hide()
 
@@ -735,15 +759,15 @@ end
 
 -- local TESTS function implementation, remove later!
 
-Box_OnDragStart = function(self, button, down)
+function Box_OnDragStart(self, button, down)
 	self:StartMoving()
 end
 
-Box_OnDragStop = function(self, button, down)
+function Box_OnDragStop(self, button, down)
 	self:StopMovingOrSizing()
 end
 
-CreateBox = function(stringname)
+function CreateBox(stringname)
 	local name = nil
 	if stringname and type(stringname) == "string" then
 		name = stringname
@@ -785,7 +809,7 @@ CreateBox = function(stringname)
 	return frame
 end
 
-MapID_OnUpdate = function(self, elapsed)
+function MapID_OnUpdate(self, elapsed)
 	local mapid = GetCurrentMapAreaID()
 	if not mapid then
 		self.Text:SetText("id: nil")
@@ -796,7 +820,7 @@ MapID_OnUpdate = function(self, elapsed)
 	self.Text:Show()
 end
 
-MapFileName_OnUpdate = function(self, elapsed)
+function MapFileName_OnUpdate(self, elapsed)
 	local filename = GetMapInfo()
 	if not filename then
 		self.Text:SetText("filename: nil")
@@ -807,7 +831,7 @@ MapFileName_OnUpdate = function(self, elapsed)
 	self.Text:Show()
 end
 
-MapLocalName_OnUpdate = function(self, elapsed)
+function MapLocalName_OnUpdate(self, elapsed)
 	local mapid = GetCurrentMapAreaID()
 	local localname = mapdata:MapLocalize(mapid)
 	if not localname then
@@ -819,7 +843,7 @@ MapLocalName_OnUpdate = function(self, elapsed)
 	self.Text:Show()
 end
 
-MapLocal2Name_OnUpdate = function(self, elapsed)
+function MapLocal2Name_OnUpdate(self, elapsed)
 	local mapid = GetCurrentMapAreaID()
 	local localname = GetZoneText()
 	if not localname then
