@@ -1269,6 +1269,8 @@ end
 -- @return x,y or the upper left corner or 0,0 if no data exists. Will add a message to the DEFAULT_CHAT_FRAME
 -- @usage local x,y = lib:MapUpperLeft(GetMapInfo(),GetCurrentMapDungeonLevel())
 function lib:GetMapUpperLeft(mapfile, floor)
+	print("mapdata id: "..mapfile)
+	print("mapdata floor: "..floor)
 	assert(floor == nil or (floor and floor >= 0))
 	if type(mapfile) == "string" then
 		mapfile = idToMap[mapfile]
