@@ -2,7 +2,7 @@
 	Library contains a dataset for Map file names and floors giving the raw map data
 	it also has a few functions to help determine distance and directions.
 --]]
-local MAJOR, MINOR = "LibMapData-1.0", tonumber("73") or 999
+local MAJOR, MINOR = "LibMapData-1.0", tonumber("80") or 999
 assert(LibStub, MAJOR.." requires LibStub")
 
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
@@ -90,7 +90,7 @@ do
 			[1] = {3327.0830078125,2218.7490234375,5302.0830078125,13568.7490234375,8629.166015625,11350.0},
 		}
 		mapData[536] = { 
-			['floors'] = 0, ['name'] = "VioletHold", ['rzti'] = 608, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "VioletHold", ['rzti'] = 608, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 256.22900390625,170.820068359375,-665.346984863281,1813.34997558594,-921.575988769531,1984.17004394531 },
 		}
 		mapData[610] = { 
@@ -145,7 +145,7 @@ do
 			[1] = {2508.3330078125,1672.9169921875,2081.25,-9535.416015625,4589.5830078125,-11208.3330078125},
 		}
 		mapData[760] = { 
-			['floors'] = 0, ['name'] = "RazorfenDowns", ['rzti'] = 129, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "RazorfenDowns", ['rzti'] = 129, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 709.048950195312,472.699951171875,-570.890991210938,2209.85009765625,-1279.93994140625,2682.55004882812 },
 		}
 		mapData[686] = { 
@@ -165,7 +165,7 @@ do
 			[1] = {4518.74987792969,3012.49981689453,-3033.33325195312,3837.49975585938,1485.41662597656,824.999938964844},
 		}
 		mapData[520] = { 
-			['floors'] = 0, ['name'] = "TheNexus", ['rzti'] = 576, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "TheNexus", ['rzti'] = 576, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 1101.2809753418,734.1875,708.068969726562,64.0755004882812,-393.212005615234,798.263000488281 },
 		}
 		mapData[261] = { 
@@ -177,11 +177,11 @@ do
 			[1] = {3499.99981689453,2333.3330078125,-3016.66650390625,-9400.0,483.333312988281,-11733.3330078125},
 		}
 		mapData[761] = { 
-			['floors'] = 0, ['name'] = "RazorfenKraul", ['rzti'] = 47, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "RazorfenKraul", ['rzti'] = 47, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 736.449951171875,490.959838867188,-1322.46997070312,1858.68005371094,-2058.919921875,2349.63989257812 },
 		}
 		mapData[687] = { 
-			['floors'] = 0, ['name'] = "TheTempleOfAtalHakkar", ['rzti'] = 109, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "TheTempleOfAtalHakkar", ['rzti'] = 109, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 695.028991699219,463.352981567383,252.27099609375,-718.518981933594,-442.757995605469,-255.166000366211 },
 		}
 		mapData[613] = { 
@@ -205,7 +205,7 @@ do
 			[1] = {5164.5830078125,3443.74987792969,-5539.5830078125,1481.25,-375.0,-1962.49987792969},
 		}
 		mapData[521] = { 
-			['floors'] = 0, ['name'] = "CoTStratholme", ['rzti'] = 595, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 2, ['name'] = "CoTStratholme", ['rzti'] = 595, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = {1824.99993896484,1216.66650390625,-2152.08325195312,2297.91650390625,-327.083312988281,1081.25},
 			[2] = { 1125.29998779297,750.199951171875,-731.059997558594,1891.76000976562,-1856.35998535156,2641.9599609375 },
 		}
@@ -259,7 +259,7 @@ do
 			[1] = {17751.3984375,11834.2650146484,-9217.15234375,10593.375,8534.24609375,-1240.89001464844},
 		}
 		mapData[522] = { 
-			['floors'] = 0, ['name'] = "Ahnkahet", ['rzti'] = 619, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "Ahnkahet", ['rzti'] = 619, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 972.41796875,648.279022216797,1205.71997070312,200.404998779297,233.302001953125,848.684020996094 },
 		}
 		mapData[763] = { 
@@ -317,7 +317,7 @@ do
 			[3] = { 736.581008911133,491.054512023926,510.906005859375,-75.3335037231445,-225.675003051758,415.721008300781 },
 		}
 		mapData[542] = { 
-			['floors'] = 0, ['name'] = "TheArgentColiseum", ['rzti'] = 650, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "TheArgentColiseum", ['rzti'] = 650, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 369.986186981201,246.657989501953,41.255199432373,446.360992431641,-328.730987548828,693.018981933594 },
 		}
 		mapData[764] = { 
@@ -331,7 +331,7 @@ do
 			[7] = { 272.429931640625,181.619903564453,-2023.77001953125,-278.216003417969,-2296.19995117188,-96.5960998535156 },
 		}
 		mapData[690] = { 
-			['floors'] = 0, ['name'] = "TheStockade", ['rzti'] = 34, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "TheStockade", ['rzti'] = 34, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 378.15299987793,252.102495193481,188.330993652344,-31.4694995880127,-189.822006225586,220.632995605469 },
 		}
 		mapData[24] = { 
@@ -425,7 +425,7 @@ do
 			[1] = {790.625061035156,527.6044921875,713.591369628906,-4569.2412109375,1504.21643066406,-5096.845703125},
 		}
 		mapData[526] = { 
-			['floors'] = 0, ['name'] = "Ulduar77", ['rzti'] = 599, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "Ulduar77", ['rzti'] = 599, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 920.196014404297,613.466064453125,-206.324005126953,762.443969726562,-1126.52001953125,1375.91003417969 },
 		}
 		mapData[767] = { 
@@ -450,7 +450,7 @@ do
 			[1] = {3145.83325195312,2097.91668701172,-3439.58325195312,-533.333312988281,-293.75,-2631.25},
 		}
 		mapData[749] = { 
-			['floors'] = 0, ['name'] = "WailingCaverns", ['rzti'] = 43, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "WailingCaverns", ['rzti'] = 43, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 936.475006103516,624.315994262695,375.946014404297,-410.14599609375,-560.528991699219,214.169998168945 },
 		}
 		mapData[490] = { 
@@ -458,11 +458,11 @@ do
 			[1] = {5249.99987792969,3499.99987792969,1110.41662597656,5516.66650390625,6360.41650390625,2016.66662597656},
 		}
 		mapData[527] = { 
-			['floors'] = 0, ['name'] = "TheEyeofEternity", ['rzti'] = 616, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "TheEyeofEternity", ['rzti'] = 616, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 430.070068359375,286.713012695312,-1036.7099609375,611.127990722656,-1466.78002929688,897.841003417969 },
 		}
 		mapData[601] = { 
-			['floors'] = 0, ['name'] = "TheForgeofSouls", ['rzti'] = 632, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "TheForgeofSouls", ['rzti'] = 632, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 1448.09985351562,965.400390625,-1686.03002929688,4814.52978515625,-3134.1298828125,5779.93017578125 },
 		}
 		mapData[9] = { 
@@ -470,7 +470,7 @@ do
 			[1] = {5449.99975585938,3633.33325195312,-2204.16650390625,-168.75,3245.83325195312,-3802.08325195312},
 		}
 		mapData[768] = { 
-			['floors'] = 0, ['name'] = "TheStonecore", ['rzti'] = 725, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "TheStonecore", ['rzti'] = 725, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 1317.12899780273,878.086975097656,-384.121002197266,797.482971191406,-1701.25,1675.56994628906 },
 		}
 		mapData[28] = { 
@@ -502,7 +502,7 @@ do
 			[1] = {1533.33331298828,1022.91667175293,-839.583312988281,1256.25,693.75,233.33332824707},
 		}
 		mapData[769] = { 
-			['floors'] = 0, ['name'] = "Skywall", ['rzti'] = 657, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "Skywall", ['rzti'] = 657, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 2018.72503662109,1345.81802368164,910.934997558594,-1457.15002441406,-1107.7900390625,-111.332000732422 },
 		}
 		mapData[473] = { 
@@ -547,7 +547,7 @@ do
 			[6] = { 619.468994140625,412.97998046875,310.014007568359,1834.77001953125,-309.454986572266,2247.75 },
 		}
 		mapData[603] = { 
-			['floors'] = 0, ['name'] = "HallsofReflection", ['rzti'] = 668, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "HallsofReflection", ['rzti'] = 668, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 879.02001953125,586.01953125,-1469.98999023438,5126.990234375,-2349.01000976562,5713.009765625 },
 		}
 		mapData[11] = { 
@@ -563,7 +563,7 @@ do
 			[1] = {5270.8330078125,3514.5830078125,2437.5,-2156.25,7708.3330078125,-5670.8330078125},
 		}
 		mapData[696] = { 
-			['floors'] = 0, ['name'] = "MoltenCore", ['rzti'] = 409, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "MoltenCore", ['rzti'] = 409, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 1264.80006408691,843.199066162109,1395.56005859375,459.860992431641,130.759994506836,1303.06005859375 },
 		}
 		mapData[141] = { 
@@ -575,7 +575,7 @@ do
 			[1] = {3470.83325195312,2314.5830078125,-1535.41662597656,-7939.5830078125,1935.41662597656,-10254.166015625},
 		}
 		mapData[752] = { 
-			['floors'] = 0, ['name'] = "BaradinHold", ['rzti'] = 757, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "BaradinHold", ['rzti'] = 757, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 585.0,390.0,-1032.5,125.0,-1617.5,515.0 },
 		}
 		mapData[678] = { 
@@ -587,7 +587,7 @@ do
 			[1] = {4356.25,2904.16650390625,-6929.16650390625,7287.49951171875,-2572.91650390625,4383.3330078125},
 		}
 		mapData[530] = { 
-			['floors'] = 0, ['name'] = "Gundrak", ['rzti'] = 604, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "Gundrak", ['rzti'] = 604, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 905.033050537109,603.35009765625,-259.886993408203,1465.52001953125,-1164.92004394531,2068.8701171875 },
 		}
 		mapData[604] = { 
@@ -668,7 +668,7 @@ do
 			[1] = {2512.49987792969,1675.0,-3035.41650390625,-8233.3330078125,-522.916625976562,-9908.3330078125},
 		}
 		mapData[680] = { 
-			['floors'] = 0, ['name'] = "Ragefire", ['rzti'] = 389, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "Ragefire", ['rzti'] = 389, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 738.864013671875,492.576202392578,285.993011474609,-452.953002929688,-452.871002197266,39.6231994628906 },
 		}
 		mapData[606] = { 
@@ -684,11 +684,11 @@ do
 			[1] = {7112.49963378906,4741.666015625,-1841.66662597656,10197.916015625,5270.8330078125,5456.25},
 		}
 		mapData[532] = { 
-			['floors'] = 0, ['name'] = "VaultofArchavon", ['rzti'] = 624, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "VaultofArchavon", ['rzti'] = 624, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 1398.25500488281,932.170013427734,812.518981933594,-634.080017089844,-585.736022949219,298.089996337891 },
 		}
 		mapData[773] = { 
-			['floors'] = 0, ['name'] = "ThroneoftheFourWinds", ['rzti'] = 754, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "ThroneoftheFourWinds", ['rzti'] = 754, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 1500.0,1000.0,-25.0,-550.0,-1525.0,450.0 },
 		}
 		mapData[736] = { 
@@ -720,7 +720,7 @@ do
 			[4] = { 649.427062988281,432.94970703125,1419.05004882812,-7637.06982421875,769.622985839844,-7204.1201171875 },
 		}
 		mapData[718] = { 
-			['floors'] = 0, ['name'] = "OnyxiasLair", ['rzti'] = 249, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "OnyxiasLair", ['rzti'] = 249, ['map_type'] = 2, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 483.117988586426,322.078788757324,371.734985351562,-223.832992553711,-111.383003234863,98.2457962036133 },
 		}
 		mapData[681] = { 
@@ -796,7 +796,7 @@ do
 			[1] = {5574.99967193604,3716.66674804688,-5483.3330078125,5456.25,91.6666641235352,1739.58325195312},
 		}
 		mapData[757] = { 
-			['floors'] = 0, ['name'] = "GrimBatol", ['rzti'] = 670, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
+			['floors'] = 1, ['name'] = "GrimBatol", ['rzti'] = 670, ['map_type'] = 1, ['continent'] = 0, ['transform'] = 0,
 			[1] = { 869.047431945801,579.364990234375,952.780029296875,-880.986999511719,83.7325973510742,-301.622009277344 },
 		}
 		mapData[720] = { 
@@ -844,12 +844,19 @@ do
 	for k,v in pairs(mapData) do
 		idToMap[v['name']] = k
 	end
+
 	-- Phasing Hacks
 	idToMap['Hyjal_terrain1'] = idToMap['Hyjal']
 	
 	-- Build the localized name list.
 	local continentList = {GetMapContinents()}
 	for cID = 1, #continentList do
+		SetMapZoom(cID, 0)
+		local mapfile = GetMapInfo()
+		local cname = continentList[cID]
+		mapToLocal[mapfile] = cname
+		localToMap[cname] = mapfile
+		mapData[idToMap[mapfile]].continent = cID
 		for zID, zname in ipairs({GetMapZones(cID)}) do
 			SetMapZoom(cID, zID)
 			local mapfile = GetMapInfo()
@@ -1105,7 +1112,7 @@ function lib:ConvertToContinent(map,floor, x,y)
 		x = x + transforms_x[mapData[map].continent]
 		y = y + transforms_y[mapData[map].continent]
 	end
-	return x,y
+	return x,-y
 end
 
 --- API to calc the distance between 2 locations across map files
@@ -1218,14 +1225,6 @@ function lib:MapAreaId(mapfile)
 	return idToMap[mapfile]
 end
 
-function lib:AreaIdToMapfile(areaid)
-	if areaid and type(areaid) == "number" then
-		return mapData[areaid]['name']
-	else
-		return ""
-	end
-end
-
 --- API to get localized name of a given map file
 -- @param mapfile or area id to check, note area id is more accurate 
 -- @return the localized map name or nil
@@ -1269,8 +1268,6 @@ end
 -- @return x,y or the upper left corner or 0,0 if no data exists. Will add a message to the DEFAULT_CHAT_FRAME
 -- @usage local x,y = lib:MapUpperLeft(GetMapInfo(),GetCurrentMapDungeonLevel())
 function lib:GetMapUpperLeft(mapfile, floor)
-	print("mapdata id: "..mapfile)
-	print("mapdata floor: "..floor)
 	assert(floor == nil or (floor and floor >= 0))
 	if type(mapfile) == "string" then
 		mapfile = idToMap[mapfile]

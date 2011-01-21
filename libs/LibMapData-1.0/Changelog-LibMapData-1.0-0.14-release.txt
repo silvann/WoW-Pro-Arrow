@@ -1,0 +1,55 @@
+------------------------------------------------------------------------
+r81 | kagaro | 2011-01-10 23:18:00 +0000 (Mon, 10 Jan 2011) | 1 line
+Changed paths:
+   A /tags/0.14-release (from /trunk:80)
+
+Tagging as 0.14-release
+------------------------------------------------------------------------
+r80 | kagaro | 2011-01-10 22:53:48 +0000 (Mon, 10 Jan 2011) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Fixed a sign bit getting flipped
+------------------------------------------------------------------------
+r78 | kagaro | 2011-01-09 17:38:29 +0000 (Sun, 09 Jan 2011) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Updated for missing world map continent fixes
+------------------------------------------------------------------------
+r76 | kagaro | 2010-12-30 17:04:45 +0000 (Thu, 30 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Updated map floor count for all instance maps to return 1 instead of 0 for no floor maps as the blizz api sometimes returns 1 floor when it should return 0
+------------------------------------------------------------------------
+r75 | kagaro | 2010-12-22 22:01:17 +0000 (Wed, 22 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Apply fix for Baradin hold like throne of four winds.
+------------------------------------------------------------------------
+r74 | kagaro | 2010-12-19 23:41:59 +0000 (Sun, 19 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Make throne of four winds show as having 1 floor since in game it return 0 or 1 sometiems, even though it only has 1 floor.
+------------------------------------------------------------------------
+r73 | kagaro | 2010-12-11 23:49:50 +0000 (Sat, 11 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Added a phasing hack for Hyal
+------------------------------------------------------------------------
+r72 | kagaro | 2010-12-11 15:53:13 +0000 (Sat, 11 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/library.lua
+
+Phasing hacks
+------------------------------------------------------------------------
+r71 | kagaro | 2010-12-10 12:13:57 +0000 (Fri, 10 Dec 2010) | 1 line
+Changed paths:
+   M /trunk/LibMapData-1.0.toc
+
+Removed X-Compat toc, as its no longer has pre shattering data in it.
+------------------------------------------------------------------------

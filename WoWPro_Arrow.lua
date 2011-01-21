@@ -251,6 +251,7 @@ local currentFloor
 local currentContinent
 local waypointsOrder = {}
 local firedCalls = {}
+local lastDistance
 ------------------------
 
 -----------------
@@ -535,6 +536,7 @@ end
 function SetArrowToWaypoint(wpID)
 	-- TODO: falta mais coisas?
 	if wpID and waypoints[wpID] then
+		twipe(firedCalls)
 		local x, y, zoneid, floor, opt = unpack(waypoints[wpID])
 		arrowWaypoint = wpID
 		WoWPro_Arrow.arrow.title:SetFormattedText(opt.label)
@@ -664,10 +666,12 @@ function TestOptAdd(opt)
 	if not opt or type(opt) ~= "table" then
 		return wpDefaults
 	end
-
-	for k,v in pairs(wpDefaults) do
-		opt.k = TestSpecificOpt(opt.k) or v
+	
+	for k,v in pairs(opt) do
+		opt.k = TestSpecificOpt(k, v)
 	end
+	setmetatable(opt, {__index = wpDefaults})
+	
 	return opt
 end
 
@@ -676,23 +680,22 @@ end
 function AddWaypoint(x, y, zone, floor, opt)
 	local x, y = TestCoordsAdd(x, y)
 	local zoneid = TestZoneAdd(zone)
-	dbp("zoneid: "..zoneid)
 	if not x or not y or not zoneid then
 		dbp("It was not possible to add the waypoint", "Error")
 		return nil
 	end
 	local floor = TestFloorAdd(floor, zoneid)
-	dbp("floor: "..floor)
 	local opt = TestOptAdd(opt)
+	
 	local continent = mapdata:GetContinentFromMap(zoneid)
 	
 	-- saving waypoint as and in a table
 	local waypoint = {x, y, zoneid, floor, opt, continent}
-	local wpID = tonumber(currentZoneID..(mapdata:EncodeLoc(x, y, floor)))
+	local wpID = tonumber(zoneid..(mapdata:EncodeLoc(x, y, floor)))
 	
 	if waypoints[wpID] then
-		-- there's a waypoint in that location; override?
-		dbp("There was already a waypoint in that location; overridind it")
+		-- there's a waypoint in that location; overriding
+		-- dbp("There was already a waypoint in that location; overridind it")
 	end
 	
 	waypoints[wpID] = waypoint
@@ -717,26 +720,25 @@ function IsArrowSet(wpID)
 end
 
 function ClearArrow()
-	if IsArrowSet() then
-		arrowWaypoint = nil
-	end
+	arrowWaypoint = nil
 	WoWPro_Arrow.arrow:Hide()
 	SetAutoArrow()
 end
 
 function RemoveWaypoint(wpID)
-	if IsArrowSet(wpID) then
-		ClearArrow()
-	end
-
 	if not wpID or not waypoints[wpID] then
 		return false
 	else
+		twipe(firedCalls)
+		lastDistance = nil
 		twipe(waypoints[wpID])
 		for i,w in ipairs(waypointsOrder) do
 			if w == wpID then
 				tremove(waypointsOrder, i)
 			end
+		end
+		if IsArrowSet(wpID) then
+			ClearArrow()
 		end
 		-- clear from minimap and worldmap
 		return true
@@ -752,7 +754,7 @@ function ClearWaypoint(wpID)
 	return event
 end
 
-local lastDistance
+
 local function OnUpdateDistance(self, elapsed, distance, opt)
 	if (lastDistance and lastDistance == distance) or type(distance) ~= "number" then
 		return
@@ -775,6 +777,7 @@ local function OnUpdateDistance(self, elapsed, distance, opt)
 		firedCalls["arrival"] = true
 		if opt.cleararrival then
 			ClearWaypoint(arrowWaypoint)
+			return
 		end
 		-- possibly change arrow animation/texture later / and give some time before removing
 	end
@@ -802,15 +805,9 @@ local function OnUpdateDistance(self, elapsed, distance, opt)
 end
 
 
-local lastFacing
+
 local function OnUpdateAngle(self, elapsed, angle, opt)
 	local facing = GetPlayerFacing()
-	
-	if lastFacing and lastFacing == facing then
-		return
-	end
-	lastFacing = facing
-	
 	local faceangle = angle - facing
 
 	local perc = abs((PI - abs(faceangle)) / PI)
@@ -838,10 +835,9 @@ local function OnUpdateArrow(self, elapsed)
 	local x, y, zone, floor, opt, continent = unpack(waypoints[arrowWaypoint])
 	
 	if continent == currentContinent and (currentZoneID ~= zone or currentFloor == floor) then
-		dbp("currentFloor", "floor")
 		local distance, xd, yd = mapdata:DistanceWithinContinent(currentZoneID, currentFloor-1, cx, cy, zone, floor-1, x, y)
 
-		local angle = atan2(xd, yd)
+		local angle = atan2(xd, -yd)
 		if angle > 0 then
 			angle = PI2 - angle
 		else
